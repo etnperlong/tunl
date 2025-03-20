@@ -9,6 +9,7 @@ use crate::config::Config;
 use crate::link::generate_link;
 use crate::proxy::RequestContext;
 
+use proxy::parse_early_data;
 use worker::*;
 
 lazy_static::lazy_static! {
@@ -21,29 +22,31 @@ lazy_static::lazy_static! {
 #[event(fetch)]
 async fn main(req: Request, _: Env, _: Context) -> Result<Response> {
     match req.path().as_str() {
-        "/link" => link(req, CONFIG.clone()),
+        "/deep_link_config" => link(req, CONFIG.clone()),
         path => match CONFIG.dispatch_inbound(path) {
             Some(inbound) => {
+                let early_data = req.headers().get("sec-websocket-protocol")?;
+                let early_data = parse_early_data(early_data)?;
                 let context = RequestContext {
                     inbound,
                     request: Some(req),
                     ..Default::default()
                 };
-                tunnel(CONFIG.clone(), context).await
+                tunnel(CONFIG.clone(), context, early_data.clone()).await
             }
             None => Response::empty(),
         },
     }
 }
 
-async fn tunnel(config: Arc<Config>, context: RequestContext) -> Result<Response> {
+async fn tunnel(config: Arc<Config>, context: RequestContext, early_data: Option<Vec<u8>>) -> Result<Response> {
     let WebSocketPair { server, client } = WebSocketPair::new()?;
 
     server.accept()?;
     wasm_bindgen_futures::spawn_local(async move {
         let events = server.events().unwrap();
 
-        if let Err(e) = proxy::process(config, context, &server, events).await {
+        if let Err(e) = proxy::process(config, context, &server, events, early_data).await {
             console_log!("[tunnel]: {}", e);
         }
     });

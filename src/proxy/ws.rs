@@ -17,11 +17,15 @@ pin_project! {
 }
 
 impl<'a> WebSocketStream<'a> {
-    pub fn new(events: EventStream<'a>, ws: &'a WebSocket) -> Self {
+    pub fn new(events: EventStream<'a>, ws: &'a WebSocket, early_data: Option<Vec<u8>>,) -> Self {
+        let mut buffer = BytesMut::new();
+        if let Some(data) = early_data {
+            buffer.put_slice(&data);
+        }
         Self {
             events,
             ws,
-            buffer: BytesMut::new(),
+            buffer,
         }
     }
 }

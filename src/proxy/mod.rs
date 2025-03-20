@@ -10,6 +10,7 @@ use std::sync::Arc;
 
 use crate::config::*;
 use ws::WebSocketStream;
+use base64::{Engine as _, engine::{self}};
 
 use async_trait::async_trait;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -136,8 +137,10 @@ pub async fn process(
     context: RequestContext,
     ws: &WebSocket,
     events: EventStream<'_>,
+    early_data: Option<Vec<u8>>
 ) -> Result<()> {
-    let ws = WebSocketStream::new(events, ws);
+
+    let ws = WebSocketStream::new(events, ws, early_data);
     match context.inbound.protocol {
         Protocol::Vmess => {
             vmess::inbound::VmessStream::new(config, context, ws)
@@ -161,4 +164,20 @@ pub async fn process(
         }
         _ => return Err(Error::RustError("invalid inbound protocol".to_string())),
     }
+}
+
+pub fn parse_early_data(data: Option<String>) -> Result<Option<Vec<u8>>> {
+    if let Some(data) = data {
+        if !data.is_empty() {
+            let s = data.replace('+', "-").replace('/', "_").replace("=", "");
+            match engine::general_purpose::URL_SAFE_NO_PAD.decode(s) {
+                Ok(early_data) => return Ok(Some(early_data)),
+                Err(err) => {
+                    console_error!("Error while parsing early data: {err})");
+                    return Err(Error::RustError(format!("Error while parsing early data: {err}")))
+                },
+            }
+        }
+    }
+    Ok(None)
 }
