@@ -1,10 +1,12 @@
 pub mod bepass;
+pub mod freedom;
 pub mod blackhole;
 pub mod relay;
 pub mod trojan;
 pub mod vless;
 pub mod vmess;
 pub mod ws;
+pub mod mock_udp;
 
 use std::sync::Arc;
 
@@ -92,6 +94,12 @@ impl Clone for RequestContext {
 }
 
 async fn connect_outbound(ctx: RequestContext, outbound: Outbound) -> Result<Box<dyn Proxy>> {
+    // Detect the DNS request
+    if matches!(ctx.network, Network::Udp) && ctx.port == 53 {
+        console_log!("[MockUDP] Detected UDP DNS request, will use DoH to handle it");
+        return Ok(Box::new(mock_udp::outbound::MockUDPStream::new()));
+    }
+
     let (addr, port) = match outbound.protocol {
         Protocol::Freedom => (&ctx.address, ctx.port),
         _ => {
@@ -113,6 +121,7 @@ async fn connect_outbound(ctx: RequestContext, outbound: Outbound) -> Result<Box
     let socket = Socket::builder().connect(addr, port)?;
 
     let mut stream: Box<dyn Proxy> = match outbound.protocol {
+        Protocol::MockUDP => Box::new(mock_udp::outbound::MockUDPStream::new()),
         Protocol::Vless => Box::new(vless::outbound::VlessStream::new(ctx, outbound, socket)),
         Protocol::Trojan => Box::new(trojan::outbound::TrojanStream::new(ctx, outbound, socket)),
         Protocol::RelayV1 => Box::new(relay::outbound::RelayStream::new(
@@ -126,7 +135,7 @@ async fn connect_outbound(ctx: RequestContext, outbound: Outbound) -> Result<Box
             relay::outbound::RelayVersion::V2,
         )),
         Protocol::Blackhole => Box::new(blackhole::outbound::BlackholeStream),
-        _ => Box::new(socket),
+        _ => Box::new(freedom::outbound::FreedomStream::new(ctx, socket)),
     };
 
     stream.process().await?;

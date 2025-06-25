@@ -17,7 +17,6 @@ pub struct TrojanStream {
     pub buffer: BytesMut,
     pub outbound: Outbound,
     context: RequestContext,
-    handshaked: bool,
 }
 
 impl TrojanStream {
@@ -29,7 +28,6 @@ impl TrojanStream {
             outbound,
             stream,
             buffer,
-            handshaked: false,
         }
     }
 }
@@ -48,18 +46,27 @@ impl Proxy for TrojanStream {
         cmd.extend_from_slice(password.as_bytes());
 
         cmd.extend_from_slice(&crlf);
-        cmd.extend_from_slice(&[
-            0x1, // TODO: udp
-            0x1, // TODO: ipv6 & domain
-        ]);
+        match self.context.network {
+            crate::proxy::Network::Tcp => cmd.extend_from_slice(&[0x01]),
+            crate::proxy::Network::Udp => cmd.extend_from_slice(&[0x03]),
+        }
 
-        cmd.extend_from_slice(&encode_addr(&self.context.address)?);
+        let addr = encode_addr(&self.context.address)?;
+        if self.context.address.parse::<std::net::Ipv4Addr>().is_ok() {
+            cmd.extend_from_slice(&[0x01]);
+        } else if self.context.address.parse::<std::net::Ipv6Addr>().is_ok() {
+            cmd.extend_from_slice(&[0x04]);
+        } else {
+            cmd.extend_from_slice(&[0x03]);
+        }
+
+        cmd.extend_from_slice(&addr);
         cmd.extend_from_slice(&self.context.port.to_be_bytes());
 
         cmd.extend_from_slice(&crlf);
 
         self.stream.write_all(&cmd).await?;
-
+        
         Ok(())
     }
 }
@@ -102,6 +109,6 @@ impl AsyncWrite for TrojanStream {
     }
 
     fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context) -> Poll<tokio::io::Result<()>> {
-        unimplemented!()
+        Poll::Ready(Ok(()))
     }
 }

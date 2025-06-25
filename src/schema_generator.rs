@@ -7,7 +7,7 @@ mod proxy;
 
 use crate::config::Config;
 
-use schemars::gen::SchemaSettings;
+use schemars::generate::SchemaSettings;
 use schemars::JsonSchema;
 
 fn save_schema<T: JsonSchema>() {

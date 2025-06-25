@@ -19,6 +19,7 @@ pub enum Protocol {
     RelayV2,
     Blackhole,
     Freedom,
+    MockUDP,
 }
 
 #[derive(Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -36,6 +37,8 @@ pub struct Outbound {
     pub uuid: Uuid,
     #[serde(default)]
     pub password: String,
+    #[serde(default)]
+    pub hijack_dns: bool,
 }
 
 #[derive(Default, Clone, Serialize, Deserialize, JsonSchema)]
@@ -72,16 +75,32 @@ impl Config {
     }
 
     pub fn dispatch_outbound(&self, context: &RequestContext) -> Outbound {
+        // Remove blockage of Udp
+        /*
         match &context.network {
             Network::Udp => {
                 return self.outbound.clone();
             }
             _ => {}
         }
+        */
 
         if let Ok(ip) = context.address.clone().parse::<IpAddr>() {
             if self.outbound.r#match.iter().any(|cidr| cidr.contains(&ip)) {
                 return self.outbound.clone();
+            }
+        } else {
+            // Detect the DNS request
+            match &context.network {
+                Network::Udp => {
+                    if context.port == 53 && self.outbound.hijack_dns {
+                        return Outbound {
+                            protocol: Protocol::MockUDP,
+                            ..Default::default()
+                        };
+                    }
+                }
+                _ => {}
             }
         }
 

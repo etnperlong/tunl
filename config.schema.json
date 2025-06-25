@@ -2,10 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Config",
   "type": "object",
-  "required": [
-    "inbound",
-    "outbound"
-  ],
   "properties": {
     "inbound": {
       "type": "array",
@@ -17,17 +13,17 @@
       "$ref": "#/definitions/Outbound"
     }
   },
+  "required": [
+    "inbound",
+    "outbound"
+  ],
   "definitions": {
     "Inbound": {
       "type": "object",
-      "required": [
-        "path",
-        "protocol"
-      ],
       "properties": {
         "password": {
-          "default": "",
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "path": {
           "type": "string"
@@ -36,25 +32,29 @@
           "$ref": "#/definitions/Protocol"
         },
         "uuid": {
-          "default": "00000000-0000-0000-0000-000000000000",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "default": "00000000-0000-0000-0000-000000000000"
         }
-      }
+      },
+      "required": [
+        "protocol",
+        "path"
+      ]
     },
     "Outbound": {
       "type": "object",
-      "required": [
-        "match",
-        "protocol"
-      ],
       "properties": {
         "addresses": {
-          "default": [],
           "type": "array",
+          "default": [],
           "items": {
             "type": "string"
           }
+        },
+        "hijack_dns": {
+          "type": "boolean",
+          "default": false
         },
         "match": {
           "title": "List of Ip Rages (E.g. 103.22.200.0/22)",
@@ -65,24 +65,29 @@
           }
         },
         "password": {
-          "default": "",
-          "type": "string"
+          "type": "string",
+          "default": ""
         },
         "port": {
-          "default": 0,
           "type": "integer",
           "format": "uint16",
-          "minimum": 0.0
+          "default": 0,
+          "maximum": 65535,
+          "minimum": 0
         },
         "protocol": {
           "$ref": "#/definitions/Protocol"
         },
         "uuid": {
-          "default": "00000000-0000-0000-0000-000000000000",
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "default": "00000000-0000-0000-0000-000000000000"
         }
-      }
+      },
+      "required": [
+        "match",
+        "protocol"
+      ]
     },
     "Protocol": {
       "type": "string",
@@ -94,7 +99,8 @@
         "relay_v1",
         "relay_v2",
         "blackhole",
-        "freedom"
+        "freedom",
+        "mock_u_d_p"
       ]
     }
   }

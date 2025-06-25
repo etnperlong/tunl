@@ -1,22 +1,22 @@
 [[inbound]]
 protocol = "vless"
-uuid = "0fbf4f81-2598-4b6a-a623-0ead4cb9efa8"
-path = "/vless"
+uuid = "702c307b-f195-4a16-81ba-55e3711c6a55"
+path = "/websocket"
 
 [[inbound]]
 protocol = "vmess"
-uuid = "0fbf4f81-2598-4b6a-a623-0ead4cb9efa8"
-path = "/vmess"
+uuid = "702c307b-f195-4a16-81ba-55e3711c6a55"
+path = "/socksjs"
 
 [[inbound]]
 protocol = "trojan"
-path = "/trojan"
-password = "test"
+path = "/sse"
+password = "702c307b-f195-4a16-81ba-55e3711c6a55"
 
 [outbound]
 addresses = ["relay1.bepass.org"]
 port = 6666
-protocol = "relay_v1"
+protocol = "blackhole"
 match = [
     "173.245.48.0/20",
     "103.21.244.0/22",
@@ -34,3 +34,4 @@ match = [
     "172.64.0.0/13",
     "131.0.72.0/22"
 ]
+hijack_dns = true
