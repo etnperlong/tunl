@@ -4,6 +4,11 @@ uuid = "702c307b-f195-4a16-81ba-55e3711c6a55"
 path = "/websocket"
 
 [[inbound]]
+protocol = "vless"
+uuid = "7335b918-9eb3-42eb-bcbe-517d61ca0b00"
+path = "/jet2holiday"
+
+[[inbound]]
 protocol = "vmess"
 uuid = "702c307b-f195-4a16-81ba-55e3711c6a55"
 path = "/socksjs"
